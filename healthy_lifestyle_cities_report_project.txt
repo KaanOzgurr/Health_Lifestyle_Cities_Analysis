@@ -1,0 +1,531 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA 
+
+# Style settings for plots
+
+plt.style.use('seaborn-darkgrid')
+sns.set_palette('Set2')
+plt.rcParams['figure.figsize'] = (10,6)
+plt.rcParams['font.size'] = 12
+
+# Load dataset
+df = pd.read_csv('healthy_lifestyle_cities_report.csv')
+
+print("=" * 80)
+print("Healthy Lifestyle Cities Report - 2021")
+print("=" * 80)
+print("\n1. Dataset Overview:")
+print("-" * 80)
+print(f"Total Cities: {len(df)}")
+print(f"Total Features: {len(df.columns)}")
+print(f"\First 5 rows : \n{df.head()}")
+print(df.head())
+
+print("\n\nDataset Columns:")
+print(df.columns.tolist())
+
+
+print("\n\nData Types:")
+print(df.dtypes)
+
+
+print("\n\nMissing Data Analysis:")
+print(df.isnull().sum())
+
+
+print("\n\nBasic Statistics:")
+print(df.describe())
+
+#------------------------- GRAPHIC 1 : Most healthy 15 cities ( according to level of happiness) ------------------ # 
+
+plt.figure(figsize=(14,8))
+top_15_happy = df.nlargest(15, 'Happiness.levels..City.')
+plt.subplot(2,1,1)
+colors = plt.cm.viridis(np.linspace(0,1,15))
+bars = plt.barh(range(len(top_15_happy)), top_15_happy['Happiness.Levels..City.'], color = colors)
+plt.yticks(range(15), top_15_happy['City'])
+plt.xlabel('Happiness Level', fontsize= 12, fontweight='bold')
+plt.title('Top 15 Happiest Cities', fontsize = 14, fontweight = 'bold')
+plt.gca().invert_yaxis()
+
+# Write the values on the bars
+
+for i, (idx , row) in enumerate(top_15_happy.iterrows()):
+    plt.text(row['Happiness.Levels..City.'] + 0.1, i, f" {row['Happiness.Levels..City.']:.1f}",
+            va = 'center', fontsize = 9)
+    
+plt.tight_layout()
+plt.savefig('/mnt/user-data/outputs/1_top_cities_happiness.png', dpi=300, bbox_inches = 'tight')
+print("\n Graph 1 saved:  1_top_cities_happiness.png")
+
+
+# ---------------- GRAPHIC 2 : Sunshine hours vs Happiness ( Scatter plot) ------------------ #
+
+plt.figure(figsize=(10,6))
+plt.scatter(df['Sunshine.hours..City'], df['Happiness.Levels..City.'],
+            alpha= 0.6, s = 100, c= df['Cost...Gym'], cmap = 'YlOrRd', edgecolors = 'black' , linewidth = 0.5)
+
+plt.colorbar(label = 'Cost of Gym Membership ($)')
+plt.xlabel('Average Sunshine Hours per Year', fontsize = 12, fontweight = 'bold')
+plt.ylabel('Happiness Level', fontsize = 12 , fontweight = 'bold')
+print('Average Sunshine Hours per Year vs Happiness Level\n(Color: Cost of Gym Membership)', fontsize = 14, fontweight = 'bold')
+plt.grid(True, alpha = 0.3)
+
+# Add the corelation value
+
+corr = df['Sunshine.hours..City'].corr(df['Happiness.Levels..City.'])
+plt.text(0.05,0.95, f'Correlation: {corr:.2f}', transform = plt.gca().transAxes, fontsize= 11, 
+         bbox = dict(boxstyle= 'round' , facecolor = 'wheat', alpha = 0.5 , verticalalignment = 'top'))
+
+plt.tight_layout()
+plt.savefig('/mnt/user-data/outputs/2_sunshine_vs_happiness.png', dpi=300, bbox_inches = 'tight')
+print("\n Graph 2 saved: 2_sunshine_vs_happiness.png")
+
+# ---------------- GRAPHIC 3: Cost analysis( Multi-bar chart)-------------------------- # 
+
+plt.figure(figsize=(14,10))
+
+
+# Choose the top 20 cities
+top_20_cost = df.nlargest(20, 'Happiness.Levels..City.')
+
+# Choose the cost related columns
+
+cost_columns = ['Cost...Gym',  'Cost..Fitness.Club.']
+x = np.arange(len(top_20_cost))
+width = 0.35
+
+fig, ax = plt.subplots(figsize=(14,8))
+bars1 = ax.bar(x - width/2, top_20_cost['Cost...Gym'], width, label='Fitness Gym', color = '#3498db', alpha = 0.8)
+bars2 = ax.bar(x + width/2, top_20_cost['Cost..Fitness.Club.'],width, label= 'Fitness Club', color = '#e74c3c', alpha = 0.8)
+
+
+ax.set_xlabel('Cities', fontsize = 12, fontweight = 'bold')
+ax.set_ylabel('Cost in $', fontsize = 12, fontweight = 'bold')
+ax.set_title('Cost Comparison of Gym vs Fitness Club in Top 20 Happiest Cities', fontsize = 14, fontweight = 'bold')
+ax.set_xticks(x)
+ax.set_xticklabels(top_20_cost['City'], rotation = 45, ha = 'right')
+ax.legend(fontsize = 11)
+plt.tight_layout(True , alpha= 0.3, axis = 'y')
+
+plt.tight_layout()
+plt.savefig('/mnt/user-data/outputs/3_cost_comparison.png', dpi= 300, bbox_inches = 'tight')
+print("\n Graph3 saved: 3_cost_comparison.png")
+
+
+
+
+# ---------------- GRAPHIC 4: Heatmap - Correlation matrix -------------------------- 3
+plt.figure(figsize=(14,12))
+
+
+# Choose the numerical columns for correlation analysis
+
+numerical_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+
+# Quit the City.Rank column ( because it's only ranking information)
+
+if 'City.Rank' in numerical_cols:
+    numerical_cols.remove('City.Rank')
+
+
+corr_matrix = df[numerical_cols].corr()
+
+mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
+sns.heatmap(corr_matrix, mask=mask, annot=True, fmt=".2f", cmap = 'coolwarm', center=0, square = True, linewidths = 1,
+            cbar_kws= {"shrink": 0.8} )
+
+plt.title('Correlation Matrix between Features', fontsize = 14, fontweight = 'bold', pad = 20)
+plt.xticks(rotation = 45, ha = 'right', fontsize = 9)
+plt.yticks(fontsize = 9)
+plt.tight_layout()
+plt.savefig('/mnt/user-data/outputs/4_correlation_heatmap.png', dpi=300, bbox_inches = 'tight')
+print("\n Graph4 saved: 4_correlation_heatmap.png")
+
+# ---------------- GRAPHIC 5: Outdoor Activities vs Obesity -------------------------- #
+
+plt.figure(figsize=(12,8))
+
+plt.scatter(df['Outdoor.activities..City'], df['Obesity.Rate..City.'], alpha = 0.6, s = 100, 
+            c = df['Happiness.Levels..City.'], cmap = 'RdYlGn', edgecolors = 'black' , linewidth = 0.5)
+plt.colorbar(label = 'Happiness Level')
+plt.xlabel('Outdoor (Acitivities (number)' , fontsize = 12, fontweight = 'bold')
+plt.ylabel('Obesity Rate (%)' , fontsize = 12, fontweight = 'bold')
+plt.title('Outdoor Activities vs Obesity Rate\n(Color: Happiness Level)', fontsize = 14, fontweight = 'bold')
+plt.grid(True , alpha = 0.3)
+
+
+# Add the correlation value
+corr = df['Outdoor.activities..City'].corr(df['Obesity.Levels..Country.'])
+plt.text(0.05,0.95, f'Correlation: {corr:.3f}', transform = plt.gca().transAxes, fontsize = 11, bbox = dict(boxstyle ='round',
+       facecolor = 'wheat' , alpha = 0.5, verticalalignment = 'top'))
+
+
+plt.tight_layout()
+plt.savefig('/mnt/user-data/outputs/5_activities_vs_obesity.png', dpi= 300, bbox_inches = 'tight')
+print("\n Graph5 saved: 5_activities_vs_obesity.png")
+
+# -------------------------- GRAPHIC 6 : Air Quality Distribution (Box plot) -------------------------- #
+plt.figure(figsize = (12,8))
+
+# Categorize according to air quality levels
+df['Air.Quality.Category'] = pd.cut(df['Pollution..Air.Quality...City.'], 
+                                    bins = [0, 25, 50, 75, 100]
+                                    , labels = ['Very Good', 'Good', 'Moderate' , 'Poor'])
+
+category_counts = df['Air.Quality.Category'].value_counts()
+colors_pie = ['#2ecc71', '#f1c40f', '#e67e22', '#e74c3c']
+
+
+plt.pie(category_counts, labels = category_counts.index, autopct = '%1.1f%%', startangle = 90, colors = colors_pie,
+        explode = (0.01 , 0 ,0, 0.01) , textprops={'fontsize': 12, 'fontweight': 'bold'})
+plt.title('Air Quality Distribution among Cities', fontsize = 14, fontweight = 'bold', pad = 20)
+
+plt.tight_layout()
+plt.savefig('/mnt/user-data/outputs/6_airquality_distribution.png', dpi=300, bbox_inches = 'tight')
+print("\n Graph6 saved : 6_airquality_distribution.png")
+
+
+
+
+# ------------------------  GRAPHIC 7 : Life Expectancy Analysis ------------------------------ #
+
+fig, axes = plt.subplots(2,1, figsize=(14,12))
+
+# Highest life expectancy
+top_15_life = df.nlargest(15, 'Life.Expectancy...years..Country.')
+colors = plt.cm.plasma(np.linspace(0.4,1,15))
+
+axes[0].barh(range(15), top_15_life['Life.Expectancy...years..Country.'], color = colors)
+axes[0].set_yticks(range(15))
+axes[0].yticklabels(top_15_life['City'])
+axes[0].set_xlabel('Life Expectancy (years)', fontsize = 12, fontweight = 'bold')
+axes[0].set_title('Top 15 Cities with Highest Life Expectancy', fontsize = 14, fontweight = 'bold')
+axes[0].invert_yaxis()
+axes[0].grid(True,  alpha = 0.3, axis = 'x')
+
+
+# Write the values on the bars
+
+for i, (idx , row) in enumerate(top_15_life.iterrows()):
+    axes[0].text(row['Life.Expectancy...years..Country.'] + 0.2, i, f" {row['Life.Expectancy...years..Country.']:.1f}",
+                 va = 'center', fontsize = 9)
+    
+
+
+# Lowest life expectancy
+bottom_15_life = df.nsmallest(15, 'Life.Expectancy...years..Country.')
+colors= plt.cm.inferno(np.linspace(0.4,1,15))
+
+
+axes[1].barh(range(15), bottom_15_life['Life.Expectancy...years..Country.'], color = colors)
+axes[1].set_yticks(range(15))
+axes[1].set_yticklabels(bottom_15_life['City'])
+axes[1].set_xlabel('Life Expectancy (years)', fontsize = 12, fontweight = 'bold')
+axes[1].set_title('15 Cities with Lowest Life Expectancy', fontsize = 13, fontweight = 'bold')
+axes[1].invert_yaxis()
+axes[1].grid(True, alpha = 0.3 , axis = 'x')
+
+
+# Write the values on the bars
+for i, (idx , row) in enumerate(bottom_15_life.iterrows()):
+    axes[1].text(row['Life.Expectancy...years..Country.'] + 0.2, i, f" {row['Life.Expectancy...years..Country.']:.1f}",
+            va = 'center', fontsize = 9)
+    
+
+plt.tight_layout()
+plt.savefig('/mnt/user-data/outputs/7_life_expectancy_analysis.png', dpi = 300, bbox_inches = 'tight')
+print("\n Graph 7 saved: 7_life_expectancy_analysis.png")
+
+
+# ------------------------  GRAPHIC 8 : PCA Analysis ------------------------------ #
+plt.figure (figsize = (12,8))
+
+# Data preparation for PCA
+
+features_for_pca = ['Happiness.Levels..City.', 'Sunshine.hours..City', 'Life.Expectancy...years..Country.',
+                    'Obesity.Levels..Country.', 'Cost...Gym', 'Pollution..Air.quality...City', 'Outdoor.activities..City']
+
+
+# Decrease the missing values
+
+df_pca = df[features_for_pca + ['City']].dropna()
+
+
+
+# Standardize the data
+
+scaler = StandardScaler()
+scaled_features = scaler.fit_transform(df_pca[features_for_pca])
+
+
+
+# Apply PCA
+
+pca = PCA(n_components=2)
+pca_components = pca.fit_transform(scaled_features)
+
+# Scatter plot
+plt.scatter(pca_components[:,0], pca_components[:,1], alpha = 0.7, s = 100,
+            c = df_pca['Happiness.Levels..City.'], cmap = 'viridis', edgecolors = 'black', linewidth = 0.5)
+plt.colorbar(label = 'Happiness Level')
+
+plt.xlabel(f'PCA Component 1 ({pca.explained_variance_ratio_[0]*100:.1f}%)', fontsize = 12, fontweight = 'bold')
+plt.ylabel(f'PCA Component 2 ({pca.explained_variance_ratio_[1]*100:.1f}%)', fontsize = 12, fontweight = 'bold')
+plt.title('PCA Analysis- Distribution of Cities based on Main Components', fontsize = 14, fontweight = 'bold')
+plt.grid(True, alpha = 0.3)
+
+# Label the most extreme points!
+for i in range(len(pca_components)):
+    if abs(pca_components[i,0]) > 2.5 or abs(pca_components[i,1]) > 2.5:
+        plt.annotate(df_pca.iloc[i]['City'], (pca_components[i,0], pca_components[i,1]),
+                     fontsize = 8 , alpha = 0.7) 
+
+    plt.tight_layout()
+    plt.savefig('/mnt/user-data/outputs/8_pca_analysis.png', dpi = 300, bbox_inches = 'tight')
+    print("\n Graph 8 saved: 8_pca_analysis.png")
+
+
+
+# ---------------- GRAPHIC 9: Multiple Features Comparison ( Top 5 City for Radar chart) -------------------------- #
+from math import pi
+
+fig , ax = plt.subplots(figsize=(10,10), subplot_kw= dict(projection = 'polar'))
+
+# Choose the top 5 cities
+
+top_5 = df.nlargest(5, 'Happiness.Levels..City.')
+
+# Categories ( we will use normalized values for better comparison)
+categories = ['Happiness' , 'Sunshine n\hours', 'Life \nExpectancy', 'Air \nQuality', 'Activities']
+N = len(categories)
+
+# For every city , plot the radar chart
+
+colors_radar = ['#ff6b6b', '#4ecdc4', '#45b7d1' , '#ffa07a', '#98d8c8']
+for idx , (i, city_row) in enumerate(top_5.iterrows()):
+     # Normalize the values ( 0-100 scale)
+    values = [
+        city_row['Happiness.Levels..City.'] * 10,
+        city_row['Sunshine.hours..City'] / 30,
+        city_row['Life.Expectancy...years..Country.'] * 1.2,
+        100 - city_row['Pollution..Air.Quality...City.'],
+        city_row['Outdoor.activities..City'] * 2
+
+     ]
+    
+    # Add  the first value to the end to close the radar chart
+    values += values[:1]
+
+    # Calculate the angle for each category
+
+    angles = [n / float(N) * 2 * pi for n in range(N)]
+    angles += angles[:1]  # Repeat the first angle to close the radar chart
+
+    # Draw the radar chart
+    ax.plot(angles, values, 'o-' , color = colors_radar[idx], label = city_row['City'], linewidth = 2, alpha = 0.7)
+    ax.fill(angles, values , alpha = 0.15, color = colors_radar[idx])
+
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(categories, fontsize = 11)
+    ax.set_ylim(0,100)
+    ax.set_title('Multidimensional Comparison of the Top 5 Cities \n (Normalized Values)'
+                 , fontsize = 14, fontweight = 'bold', pad = 20)
+    ax.legend(loc = 'upper right', bbox_to_anchor = (1.3, 1.1), fontsize = 10)
+    ax.grid(True)
+
+    plt.tight_layout()
+    plt.savefig('/mnt/user-data/outputs/9_radar_chart_top5_cities.png', dpi=300, bbox_inches = 'tight')
+    print("\n Graph 9 saved: 9_radar_chart_top5_cities.png")
+
+    
+
+    # ----------------- GRAPHIC 10 : Comprehensive Dashboard ----------------------- #
+    
+    
+    fig = plt.figure(figsize=(18,12))
+    gs = fig.add_gridspec(3,3, hspace = 0.3, wspace = 0.3)
+
+
+    # 1. Happiness Distribution
+    ax1 = fig.add_subplot(gs[0,:])
+    ax1.hist(df['Happiness.Levels..City.'], bins = 30, color = '#3498db' , edgecolor = 'black', alpha = 0.7)
+    ax1.set_xlabel('Happiness Level', fontsize = 12, fontweight = 'bold')
+    ax1.set_ylabel('Number of Cities', fontsize = 12, fontweight = 'bold')
+    ax1.set_title('Distribution of Happiness Levels among Cities', fontsize = 12, fontweight = 'bold')
+    ax1.axvline(df['Happiness.Levels..City.'].mean(), color = 'red', linestyle = 'dashed', linewidth= 2,
+                label = f"Mean: {df['Happiness.Levels..City.'].mean():.2f}")
+    ax1.legend()
+    ax1.grid(True, alpha = 0.3)
+
+
+
+    # 2. Cost vs Happiness
+    
+    ax2 = fig.add_subplot(gs[1,0])
+    ax2.scatter(df['Cost...Gym'], df['Happiness.Levels..City.'], alpha = 0.5, s = 30)
+    ax2.set_xlabel('Cost of Gym Membership ($)' , fontsize = 9, fontweight = 'bold')
+    ax2.set_y_label('Happiness Level', fontsize = 9,  fontweight = 'bold')
+    ax2.set_title('Cost vs Happiness' , fontweight = 'bold', fontsize = 10)
+    ax2.grid(True, alpha = 0.3)
+
+
+
+   
+   # 3. Sunshine Distribution
+
+    ax3 = fig.add_subplot(gs[1,1])
+    ax3.boxplot([df['Sunshine.hours..City.'].dropna()], labels=['Sunshine Hours'])
+    ax3.set_ylabel('Hours', fontweight = 'bold', fontsize = 9)
+    ax3.set_title('Sunshine Hours Distribution', fontweight = 'bold', fontsize = 10)
+    ax3.grid(True, alpha = 0.3, axis = 'y')
+
+
+    
+    
+    # 4. Life Expectancy Distribution
+
+
+    ax4 = fig.add.subplot(gs[1,2])
+    ax4.boxplot([df['Life.expectancy..years..Country'].dropna()],
+                labels = ['Life Expectancy'])
+    ax4.set_ylabel('Year', fontweight= 'bold', fontsize = 10)
+    ax4.set_title('Life Expectancy Distribution', fontweight= 'bold', fontsize = 10)
+    ax4.grid(True, alpha = 0.3,  axis = 'y')
+
+
+
+
+    # 5. Top 10 Happiness
+
+    ax5 = fig.add.subplot(gs[2, :2])
+    top_10 = df.nlargest(10, 'Happiness.levels..City.')
+    colors_bar = plt.cm.plasma(np.linspace(0,1,10))
+    bars = ax5.barh(range(10), top_10['Happiness.Levels..City.'],color= colors.bar)
+    ax5.set_yticks(range(10))
+    ax5.set_yticklabels(top_10['City'], fontsize = 9)
+    ax5.set_xlabel('Happiness Level' , fontweight = 'bold', fontsize = 9)
+    ax5.set_title('Happiest 10 cities:', fontweight = 'bold', fontsize = 10)
+    ax5.invert_yaxis()
+    ax5.grid(True, alpha = 0.3, axis = 'x')
+
+
+    # 6. Statistics Table
+
+    ax6 = fig.add.subplot(gs[2,2])
+    ax6.axis('off')
+    stats_data = [
+        ['Total Cities: ' , f'{len(df)}'],
+        ['Average Happiness:', f'{df["Happiness.Levels..City."].mean():.2f}']
+        ['Average Life Expectancy:', f'{df["Life.expectancy..years..Country"].mean():.1f}']
+        ['Average Obesity:', f'{df["Obesity.Levels..Country."].mean():.1f}%']
+        ['Average Sunshine Hours:', f'{df["Sunshine.hours..City."].mean():.0f}'],
+    ]
+
+    table = ax6.table(cellText= stats_data, cellLoc = 'left', loc = 'center',
+                      colWidths = [0.6, 0.4])
+    
+    table.auto_set_font_size(False)
+    table.set_fontsize(9)
+    table.scale(1,2)
+    ax6.set_title('Basic Statistics', fontweight = 'bold', fontsize = 10, pad = 20)
+
+
+    # Main Title
+
+    fig.suptitle('HEALTHY LIFE CITIES - COMPREHENSIVE ANALYSIS PANEL', fontsize = 16 , fontweight = 'bold', y = 0.98)
+
+    plt.savefig('/mnt/user-data/outputs/10_comprehensive_dashboard.png', dpi=300, bbox_inches = 'tight')
+    print("\n Graph 10 saved: 10_comprehensive_dashboard.png")
+
+
+
+
+    print("\n" + "=" * 80)
+    print("ANALYSIS COMPLETED")
+    print("=" * 80)
+    print("\nAll graphics 'mnt/user-data/outputs/' saved to this file")
+    print("\nGraphics that have been created:")
+    print("1. Happiest 15 Cities")
+    print("2. Sunshine Hours vs Happiness")
+    print("3. Fitness Club Cost Comparison")
+    print("4. Correlation Matrix")
+    print("5. Activities and Obesity")
+    print("6. Air Quality Distribution")
+    print("7. Life Expectancy Analysis")
+    print("8. PCA Analysis")
+    print("9. TOP 10  Cities with Radar Graphics")
+    print("10 Comprehensive Dashboard")
+    print("=" * 80)
+
+    
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+                                    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
