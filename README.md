@@ -85,7 +85,7 @@ pip install pandas numpy matplotlib seaborn scikit-learn
 
 1. Clone this repository:
 ```bash
-git clone https://github.com/YOUR_USERNAME/healthy-lifestyle-cities-analysis.git
+git clone https://github.com/KaanOzgurr/healthy-lifestyle-cities-analysis.git
 cd healthy-lifestyle-cities-analysis
 ```
 
