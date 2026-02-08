@@ -161,4 +161,14 @@ For questions or feedback, please open an issue or reach out via email.
 
 ---
 
+
+
+
+## Dataset
+This project uses a dataset from Kaggle.
+
+The dataset is licensed under its own license and is not covered by the MIT License.
+Please refer to the Kaggle dataset page for license details.
+
+
 ⭐ **Star this repository if you found it helpful!**
